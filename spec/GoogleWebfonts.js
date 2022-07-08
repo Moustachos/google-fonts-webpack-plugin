@@ -105,7 +105,7 @@ describe("GoogleWebfonts", () => {
 				promise.then(query => query.download())
 					.then(res => {
 						console.log(res)
-						res.status.should.equal(200)
+						res.statusCode.should.equal(200)
 					})
 			))
 		})

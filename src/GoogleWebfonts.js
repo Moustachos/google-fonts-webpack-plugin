@@ -1,7 +1,7 @@
 const _ = require("lodash")
 const path = require("path")
 const yauzl = require("yauzl")
-const fetch = require("node-fetch")
+const request = require("undici").request
 const os = require("os")
 const md5 = require("md5")
 const fs = require("fs")
@@ -112,9 +112,9 @@ class Selection {
 		if(this._response) {
 			return Promise.resolve(this._response)
 		}
-		return fetch(this.getZipURL())
+		return request(this.getZipURL(), {responseType: 'arraybuffer'})
 			.then(response => {
-				if(response.status !== 200) {
+				if(response.statusCode !== 200) {
 					throw new Error(response.statusText)
 				}
 				this._response = response
@@ -131,7 +131,8 @@ class Selection {
 		} else {
 			return new Promise((resolve, reject) => {
 				this.download()
-					.then(response => response.buffer())
+					.then(response => response.body.arrayBuffer())
+					.then(arrayBuffer => Buffer.from(arrayBuffer, 'binary'))
 					.then(buffer => {
 						fs.writeFile(cacheFilePath, buffer, (err) => {
 							if (err) console.log("Couldn't cache file")
@@ -238,12 +239,12 @@ class Font {
 		if(subsets) {
 			url += "subsets=" + subsets.join(",")
 		}
-		return fetch(url)
+		return request(url)
 			.then(response => {
-				if(response.status !== 200) {
+				if(response.statusCode !== 200) {
 					throw new Error(response.statusText)
 				}
-				return response.json()
+				return response.body.json()
 			})
 			.then(info => {
 				this._info = info
@@ -265,12 +266,12 @@ class GoogleWebfonts {
 		if(this._fonts) {
 			return Promise.resolve(this._fonts)
 		} else {
-			return fetch(this.url)
+			return request(this.url)
 				.then(response => {
-					if(response.status !== 200) {
+					if(response.statusCode !== 200) {
 						throw new Error(response.statusText)
 					}
-					return response.json()
+					return response.body.json()
 				})
 				.then(fonts => fonts.map(font => new Font(this.url, font)))
 				.then(fonts => {
