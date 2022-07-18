@@ -58,8 +58,11 @@ describe("GoogleWebfontPlugin", () => {
 	});
 
 	it("emits font files", () => {
-		fs.existsSync("/styles/font/SourceSansPro-Regular.woff").should.be.ok();
-		fs.existsSync("/styles/font/Roboto-Regular.woff").should.be.ok();
+		const fontPattern = /(SourceSansPro|Roboto)-Regular\.([\w])+\.woff$/
+
+		fs.readdirSync("/styles/font/")
+			.filter(filename => filename.match(fontPattern))
+			.should.be.lengthOf(2);
 	});
 
 	it("emits a css file", () => {

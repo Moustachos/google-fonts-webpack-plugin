@@ -6,6 +6,7 @@ const {
 } = require("webpack-sources")
 const GoogleWebfonts = require("./GoogleWebfonts")
 const cssUrl = require("./cssUrl")
+const hashFileName = require("./hash-filename")
 
 const defaults = {
     fonts: undefined,
@@ -15,7 +16,8 @@ const defaults = {
     filename: "fonts.css",
     path: "font",
     local: true,
-    noLocalInCss: false
+    noLocalInCss: false,
+    hash: "[contenthash:8]"
 }
 
 const pluginSignature = {
@@ -139,6 +141,9 @@ class GoogleWebfontsPlugin {
 	            cb();
 	        };
 
+            const mode = compilation.options.mode
+            const isProduction = mode === 'production'
+
             if (local) {
                 const addFile = (fileName, source) => {
                     const isWebpack5 = typeof this.chunk.files.add !== 'undefined';
@@ -154,14 +159,34 @@ class GoogleWebfontsPlugin {
                     css,
                     files
                 }) => {
-                    // only create CSS file when we have some fonts to output
-                    if (css.length) {
-                        addFile(cssFile, new RawSource(css));
+                    const replacements = {}
+                    for (const fileName in files) {
+                        const newFileName = hashFileName(fileName, files[fileName], this.options)
+                        replacements[fileName] = newFileName
+
+                        addFile(newFileName, files[fileName]);
                     }
 
-                    for (const fileName in files) {
-                        addFile(fileName, files[fileName]);
+                    // only create CSS file when we have some fonts to output
+                    if (css.length) {
+                        // reflect font file names changes in CSS
+                        for (const search in replacements) {
+                            const searchPattern = new RegExp(`${search}"`, 'g')
+                            const replace = replacements[search]
+                            css = css.replace(searchPattern, `${replace}"`)
+                        }
+
+                        const cssSource = new RawSource(css)
+
+                        // only hash CSS file name for production
+                        let cssFileName = cssFile
+                        if (isProduction) {
+                            cssFileName = hashFileName(cssFileName, cssSource)
+                        }
+
+                        addFile(cssFileName, cssSource);
                     }
+
                     cb();
                 })
             } else {
