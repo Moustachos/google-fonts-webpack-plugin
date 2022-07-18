@@ -154,7 +154,11 @@ class GoogleWebfontsPlugin {
                     css,
                     files
                 }) => {
-                    addFile(cssFile, new RawSource(css));
+                    // only create CSS file when we have some fonts to output
+                    if (css.length) {
+                        addFile(cssFile, new RawSource(css));
+                    }
+
                     for (const fileName in files) {
                         addFile(fileName, files[fileName]);
                     }
